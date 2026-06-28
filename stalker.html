@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LGTV IPTV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: #0b0c10; color: #ffffff; font-family: 'Inter', sans-serif; width: 100%; height: 100%; overflow: hidden; font-size: 24px; }
+        #app { display: flex; width: 100%; height: 100%; }
+        #sidebar { width: 500px; background: #12141c; border-right: 3px solid #242936; display: flex; flex-direction: column; height: 100%; flex-shrink: 0; }
+        .logo-area { padding: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 32px; font-weight: 800; border-bottom: 3px solid #242936; color: #2563eb; }
+        a.btn-switch { background: #242936; color: #8a92a6; font-size: 16px; font-weight: 600; padding: 8px 12px; border-radius: 8px; text-decoration: none; }
+        a.btn-switch:hover { color: #ffffff; background: #2563eb; }
+        .panel-manager { padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 3px solid #242936; }
+        .row-gap { display: flex; gap: 12px; width: 100%; }
+        input { width: 100%; background: #1a1d29; color: #ffffff; border: 3px solid #242936; padding: 18px; font-size: 22px; font-weight: 600; border-radius: 10px; outline: none; }
+        .btn-load { background: #2563eb; color: #ffffff; font-weight: 800; border: none; padding: 20px; font-size: 24px; cursor: pointer; border-radius: 10px; text-align: center; }
+        .mode-selector { display: flex; gap: 8px; padding: 16px; border-bottom: 3px solid #242936; }
+        .mode-btn { flex: 1; padding: 18px 8px; font-size: 20px; font-weight: 800; color: #8a92a6; background: #1a1d29; border: 3px solid #242936; text-align: center; border-radius: 10px; cursor: pointer; }
+        .mode-btn.active-mode { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+        .categories-container { flex: 1; overflow-y: auto; }
+        #cats div { padding: 22px 24px; cursor: pointer; font-size: 24px; font-weight: 700; color: #8a92a6; border-bottom: 3px solid #242936; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #cats div:hover { color: #ffffff; background: rgba(255,255,255,0.04); }
+        .cat-active { background: #2563eb !important; color: #ffffff !important; }
+        #logArea { font-size: 20px; color: #ffffff; padding: 14px; background: #2563eb; text-align: center; font-weight: 700; }
+        #middle-panel { width: 540px; background: #0b0c10; border-right: 3px solid #242936; display: flex; flex-direction: column; height: 100%; flex-shrink: 0; }
+        .list-header { padding: 24px; font-size: 28px; font-weight: 800; border-bottom: 3px solid #242936; text-align: center; }
+        #listContainer { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .list-row { display: flex; align-items: center; padding: 14px 16px; background: #1a1d29; border: 3px solid #242936; border-radius: 10px; cursor: pointer; }
+        .list-row.tv-focused { border-color: #ffffff; background: #2563eb; }
+        .list-row:hover { border-color: #555; background: #1e2235; }
+        .channel-name { font-size: 20px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .ch-number { font-size: 18px; font-weight: 600; color: #8a92a6; margin-right: 12px; min-width: 40px; }
+        .cat-count { float: right; background: #242936; color: #8a92a6; padding: 2px 14px; border-radius: 20px; font-size: 18px; font-weight: 600; min-width: 36px; text-align: center; }
+        .cat-active .cat-count { background: #1a4bb8; color: #ffffff; }
+        #right-panel { flex: 1; display: flex; flex-direction: column; height: 100%; background: #000000; position: relative; }
+        #playerBox { flex: 1; background: #000000; position: relative; }
+        #player { width: 100%; height: 100%; object-fit: contain; background: #000000; }
+        #infoOverlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #ffffff; padding: 10px 28px; border-radius: 10px; font-size: 26px; font-weight: 700; display: none; z-index: 10; text-align: center; border: 2px solid #2563eb; pointer-events: none; max-width: 80%; }
+        #infoOverlay small { display: block; font-size: 18px; font-weight: 400; color: #8a92a6; }
+        #pageIndicator { text-align: center; padding: 10px; font-size: 18px; color: #8a92a6; background: #12141c; border-top: 2px solid #242936; flex-shrink: 0; }
+        body.fullscreen-mode #sidebar { margin-left: -500px; }
+        body.fullscreen-mode #middle-panel { margin-left: -540px; }
+        #cats::-webkit-scrollbar, #listContainer::-webkit-scrollbar { width: 6px; }
+        #cats::-webkit-scrollbar-thumb, #listContainer::-webkit-scrollbar-thumb { background: #242936; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="logo-area">
+                <span>LGTV IPTV</span>
+                <a href="index.html" class="btn-switch">Xtream</a>
+            </div>
+            <div class="panel-manager">
+                <input id="pUrl" placeholder="Portal URL (http://sunucu:port/c/)">
+                <div class="row-gap">
+                    <input id="pMac" placeholder="MAC (AA:BB:CC:DD:EE:FF)" style="flex:3;">
+                    <button class="btn-load" id="connectBtn" style="padding:18px;flex:1;font-size:20px;" onclick="connect()">BAGLAN</button>
+                </div>
+            </div>
+            <div class="mode-selector">
+                <button class="mode-btn active-mode" id="mLive" onclick="setMode('LIVE')">CANLI</button>
+                <button class="mode-btn" id="mVod" onclick="setMode('VOD')">FILM</button>
+                <button class="mode-btn" id="mSeries" onclick="setMode('SERIES')">DIZI</button>
+            </div>
+            <div class="categories-container"><div id="cats"></div></div>
+            <div id="logArea">Portal URL + MAC girin, Baglan'a tiklayin.</div>
+        </aside>
+        <section id="middle-panel">
+            <div class="list-header"><span id="listTitle">KANAL LISTESI</span></div>
+            <div id="listContainer"></div>
+            <div id="pageIndicator"></div>
+        </section>
+        <main id="right-panel">
+            <div id="playerBox">
+                <div id="infoOverlay"></div>
+                <video id="player" controls autoplay playsinline ondblclick="toggleFullScreen()"></video>
+            </div>
+        </main>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        var player = document.getElementById('player');
+        var listContainer = document.getElementById('listContainer');
+        var catsDiv = document.getElementById('cats');
+        var logArea = document.getElementById('logArea');
+        var pageIndicator = document.getElementById('pageIndicator');
+        var infoOverlay = document.getElementById('infoOverlay');
+
+        var hasStaticData = (typeof CHANNELS !== 'undefined' && CHANNELS && CHANNELS.length > 0);
+        var staticChannels = hasStaticData ? CHANNELS : [];
+        var pageOrigin = window.location.origin || window.location.protocol + '//' + window.location.host;
+        var isHttp = window.location.protocol.indexOf('http') === 0;
+        var proxyBase = isHttp ? pageOrigin + '/proxy?url=' : '';
+        var portalUrl = ''; portalBase = ''; mac = ''; token = '';
+        var allChannels = []; currentList = []; tvFocusedIndex = 0; currentMode = 'LIVE'; currentCategory = null;
+        var currentPlayingCh = null;
+        var isFullScreen = false;
+        var pageSize = 80; currentPage = 0; totalPages = 0;
+        var genreMap = {};
+
+        function log(m) { logArea.textContent = m; logArea.style.background = "#2563eb"; }
+        function logErr(m) { logArea.textContent = m; logArea.style.background = "#ef4444"; }
+
+        function apiCall(params, cb) {
+            var url = portalUrl + 'portal.php?' + params + '&mac=' + encodeURIComponent(mac);
+            if(token) url += '&token=' + encodeURIComponent(token);
+            var finalUrl = proxyBase ? proxyBase + encodeURIComponent(url) : url;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', finalUrl, true);
+            xhr.onload = function() {
+                if(xhr.status >= 200 && xhr.status < 300 && xhr.responseText.length > 0) cb(xhr.responseText);
+                else { logErr("HTTP " + xhr.status); cb(null); }
+            };
+            xhr.onerror = function() { logErr("Ag hatasi"); cb(null); };
+            try { xhr.send(); } catch(e) { logErr("XHR: " + e.message); cb(null); }
+        }
+
+        function connect() {
+            var url = document.getElementById('pUrl').value.trim();
+            var macAddr = document.getElementById('pMac').value.trim().toUpperCase();
+            if(!url || !macAddr) { logErr("Portal URL ve MAC gerekli"); return; }
+            if(url.indexOf('http') !== 0) url = 'http://' + url;
+            if(url.charAt(url.length-1) !== '/') url += '/';
+            portalUrl = url;
+            var a = document.createElement('a'); a.href = portalUrl;
+            portalBase = a.protocol + '//' + a.hostname + (a.port ? ':' + a.port : '') + '/';
+            mac = macAddr; token = ''; allChannels = []; genreMap = {};
+            log("Token aliniyor...");
+            document.getElementById('connectBtn').disabled = true;
+            apiCall('type=stb&action=handshake', function(res) {
+                if(!res) { enableBtn(); return; }
+                try {
+                    var d = JSON.parse(res);
+                    token = (d && d.js && d.js.token) || d.token || '';
+                    if(token) { log("Token alindi"); loadGenres(); }
+                    else {
+                        var tMatch = res.match(/"token"\s*:\s*"([^"]+)"/);
+                        if(tMatch) { token = tMatch[1]; log("Token alindi"); loadGenres(); }
+                        else { logErr("Token alinamadi."); enableBtn(); }
+                    }
+                } catch(e) {
+                    var tMatch2 = res.match(/["']token["']\s*[:=]\s*["']([^"']+)["']/);
+                    if(tMatch2) { token = tMatch2[1]; log("Token alindi"); loadGenres(); }
+                    else { logErr("Yanit: " + e.message); enableBtn(); }
+                }
+            });
+        }
+
+        function loadGenres() {
+            apiCall('type=itv&action=get_genres', function(res) {
+                if(res) {
+                    try {
+                        var d = JSON.parse(res);
+                        var list = d.js || d.data || [];
+                        if(Array.isArray(list)) {
+                            for(var i=0; i<list.length; i++) {
+                                if(list[i].id && list[i].title) genreMap[list[i].id] = list[i].title;
+                            }
+                        }
+                    } catch(e){}
+                }
+                loadChannels();
+            });
+        }
+
+        function loadChannels() {
+            log("Kanallar yukleniyor...");
+            apiCall('type=itv&action=get_all_channels', function(res) {
+                if(!res) { logErr("Kanal listesi alinamadi."); enableBtn(); return; }
+                try {
+                    var d = JSON.parse(res);
+                    var channels = [];
+                    if(d && d.js && d.js.data) channels = d.js.data;
+                    else if(d && d.data) channels = d.data;
+                    else if(Array.isArray(d)) channels = d;
+                    else if(d && d.js && Array.isArray(d.js)) channels = d.js;
+                    if(!channels || channels.length === 0) { logErr("Kanal bulunamadi."); enableBtn(); return; }
+                    for(var i=0; i<channels.length; i++) {
+                        var c = channels[i];
+                        if(!c || !c.name) continue;
+                        var chId = c.id || c.channel_id || i;
+                        var groupName = genreMap[c.tv_genre_id] || c.genre || c.category || c.group || 'GENEL';
+                        var streamUrl = '';
+                        if(c.cmd) {
+                            var cmdUrl = c.cmd.replace(/^ffmpeg\s+/, '');
+                            cmdUrl = cmdUrl.replace('http://localhost/', portalBase);
+                            streamUrl = cmdUrl;
+                        }
+                        if(!streamUrl && c.url) streamUrl = c.url;
+                        if(!streamUrl && c.link) streamUrl = c.link;
+                        if(!streamUrl && c.stream_url) streamUrl = c.stream_url;
+                        if(!streamUrl) streamUrl = portalUrl + 'ch/' + chId;
+                        if(streamUrl) {
+                            var sep = streamUrl.indexOf('?') > 0 ? '&' : '?';
+                            streamUrl = streamUrl + sep + 'token=' + encodeURIComponent(token) + '&mac=' + encodeURIComponent(mac);
+                        }
+                        if(streamUrl) {
+                            allChannels.push({id: chId, name: c.name, number: c.number || '', group: groupName, url: streamUrl, type: 'LIVE'});
+                        }
+                    }
+                    log(allChannels.length + " kanal hazir");
+                    enableBtn();
+                    renderCategories();
+                    applyFiltersAndRender();
+                } catch(e) { logErr("Veri: " + e.message); enableBtn(); }
+            });
+        }
+
+        function enableBtn() { document.getElementById('connectBtn').disabled = false; }
+
+        function setMode(mode) {
+            currentMode = mode; currentCategory = null;
+            document.getElementById('mLive').classList.toggle('active-mode', mode === 'LIVE');
+            document.getElementById('mVod').classList.toggle('active-mode', mode === 'VOD');
+            document.getElementById('mSeries').classList.toggle('active-mode', mode === 'SERIES');
+            renderCategories(); applyFiltersAndRender();
+        }
+
+        function renderCategories() {
+            catsDiv.innerHTML = '';
+            var modeChannels = [];
+            for(var i=0; i<allChannels.length; i++) {
+                if(allChannels[i].type === currentMode) modeChannels.push(allChannels[i]);
+            }
+            if(!modeChannels.length) return;
+            var allDiv = document.createElement('div');
+            allDiv.textContent = 'TUMU';
+            var cnt = document.createElement('span'); cnt.className = 'cat-count'; cnt.textContent = modeChannels.length;
+            allDiv.appendChild(cnt); allDiv.className = 'cat-active';
+            allDiv.onclick = function() { currentCategory = null; clearActive(); allDiv.classList.add('cat-active'); applyFiltersAndRender(); };
+            catsDiv.appendChild(allDiv);
+            var groups = [];
+            for(var gi=0; gi<modeChannels.length; gi++) {
+                var g = modeChannels[gi].group;
+                if(groups.indexOf(g) === -1 && g) groups.push(g);
+            }
+            groups.sort();
+            for(var gi=0; gi<groups.length; gi++) {
+                (function(gName) {
+                    var d = document.createElement('div');
+                    d.textContent = gName;
+                    var c = 0; for(var ci=0; ci<modeChannels.length; ci++) { if(modeChannels[ci].group === gName) c++; }
+                    var badge = document.createElement('span'); badge.className = 'cat-count'; badge.textContent = c;
+                    d.appendChild(badge);
+                    d.onclick = function() { currentCategory = gName; clearActive(); d.classList.add('cat-active'); applyFiltersAndRender(); };
+                    catsDiv.appendChild(d);
+                })(groups[gi]);
+            }
+            function clearActive() { var ds = catsDiv.getElementsByTagName('div'); for(var x=0; x<ds.length; x++) ds[x].classList.remove('cat-active'); }
+        }
+
+        function applyFiltersAndRender() {
+            currentList = []; currentPage = 0; tvFocusedIndex = 0;
+            for(var i=0; i<allChannels.length; i++) {
+                var c = allChannels[i];
+                if(c.type === currentMode && (!currentCategory || c.group === currentCategory)) {
+                    currentList.push(c);
+                }
+            }
+            renderList();
+        }
+
+        function renderList() {
+            listContainer.innerHTML = '';
+            if(!currentList.length) { pageIndicator.textContent = ''; return; }
+            totalPages = Math.ceil(currentList.length / pageSize);
+            if(currentPage >= totalPages) currentPage = totalPages - 1;
+            if(currentPage < 0) currentPage = 0;
+            var start = currentPage * pageSize;
+            var end = Math.min(start + pageSize, currentList.length);
+            var frag = document.createDocumentFragment();
+            for(var i=start; i<end; i++) {
+                (function(ch, idx) {
+                    var row = document.createElement('div');
+                    row.className = 'list-row' + (idx === tvFocusedIndex ? ' tv-focused' : '');
+                    row.id = 'row-' + idx;
+                    if(ch.number) {
+                        var numSpan = document.createElement('span'); numSpan.className = 'ch-number'; numSpan.textContent = ch.number;
+                        row.appendChild(numSpan);
+                    }
+                    var span = document.createElement('span'); span.className = 'channel-name'; span.textContent = ch.name;
+                    row.appendChild(span);
+                    row.onclick = function() { tvFocusedIndex = idx; syncFocus(); playChannel(ch); };
+                    frag.appendChild(row);
+                })(currentList[i], i);
+            }
+            listContainer.appendChild(frag);
+            pageIndicator.textContent = totalPages > 1 ? ('Sayfa ' + (currentPage+1) + '/' + totalPages + ' (' + currentList.length + ')') : (currentList.length + ' kanal');
+            syncFocus();
+        }
+
+        function syncFocus() {
+            var rows = listContainer.getElementsByClassName('list-row');
+            for(var i=0; i<rows.length; i++) rows[i].classList.remove('tv-focused');
+            var t = document.getElementById('row-' + tvFocusedIndex);
+            if(t) { t.classList.add('tv-focused'); try { t.scrollIntoView({block:'nearest'}); } catch(e) { t.scrollIntoView(true); } }
+        }
+
+        function playChannel(ch) {
+            if(!ch) return;
+            currentPlayingCh = ch;
+            player.pause(); player.removeAttribute('src'); player.load();
+            if (!ch.cmd) { logErr("Kanal bilgisi eksik"); return; }
+            log(ch.name);
+            infoOverlay.innerHTML = ch.name + '<small>CANLI</small>';
+            infoOverlay.style.display = 'block';
+            if(infoOverlay._hideTimer) clearTimeout(infoOverlay._hideTimer);
+            infoOverlay._hideTimer = setTimeout(function() {
+                if(infoOverlay) infoOverlay.style.display = 'none';
+            }, 4000);
+            var tsliveUrl = pageOrigin + '/tslive?cmd=' + encodeURIComponent(ch.cmd) + '&mac=' + encodeURIComponent(mac) + '&token=' + encodeURIComponent(token) + '&portal=' + encodeURIComponent(portalUrl);
+            player.type = 'video/MP2T';
+            player.src = tsliveUrl;
+            player.play().catch(function(){});
+        }
+
+        function toggleFullScreen() {
+            isFullScreen = !isFullScreen;
+            document.body.classList.toggle('fullscreen-mode', isFullScreen);
+            log(isFullScreen ? "Tam Ekran" : "Normal");
+        }
+
+        window.addEventListener('keydown', function(e) {
+            var k = e.keyCode || e.which || 0;
+            if(document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+                if(k === 13) document.activeElement.blur();
+                return;
+            }
+            if(isFullScreen && (k === 461 || k === 10009 || k === 27 || k === 8)) { e.preventDefault(); toggleFullScreen(); return; }
+            if(k >= 48 && k <= 57) { e.preventDefault(); return; }
+            if(!currentList.length) { if(k===38||k===40||k===37||k===39) e.preventDefault(); return; }
+            switch(k) {
+                case 38: e.preventDefault(); if(tvFocusedIndex>0) { tvFocusedIndex--; if(tvFocusedIndex<currentPage*pageSize){currentPage--;renderList();}else{syncFocus();} } break;
+                case 40: e.preventDefault(); if(tvFocusedIndex<currentList.length-1){tvFocusedIndex++;if(tvFocusedIndex>=(currentPage+1)*pageSize){currentPage++;renderList();}else{syncFocus();} } break;
+                case 37: e.preventDefault(); if(currentPage>0){currentPage--;tvFocusedIndex=currentPage*pageSize;renderList();} break;
+                case 39: e.preventDefault(); if(currentPage<totalPages-1){currentPage++;tvFocusedIndex=currentPage*pageSize;renderList();} break;
+                case 13: e.preventDefault(); var t=currentList[tvFocusedIndex]; if(t)playChannel(t); break;
+                case 461: case 10009: case 8: case 27: e.preventDefault(); if(currentCategory){currentCategory=null;applyFiltersAndRender();renderCategories();} break;
+                case 33: case 427: e.preventDefault(); if(currentPage>0){currentPage--;tvFocusedIndex=currentPage*pageSize;renderList();} break;
+                case 34: case 428: e.preventDefault(); if(currentPage<totalPages-1){currentPage++;tvFocusedIndex=currentPage*pageSize;renderList();} break;
+                case 403: e.preventDefault(); currentCategory=null;applyFiltersAndRender();renderCategories(); break;
+                case 404: e.preventDefault(); toggleFullScreen(); break;
+            }
+        });
+        listContainer.addEventListener('wheel', function(e) { e.preventDefault(); if(!currentList.length) return; var d=e.deltaY; if(d>0&&tvFocusedIndex<currentList.length-1){tvFocusedIndex++;if(tvFocusedIndex>=(currentPage+1)*pageSize){currentPage++;renderList();}else{syncFocus();}}else if(d<0&&tvFocusedIndex>0){tvFocusedIndex--;if(tvFocusedIndex<currentPage*pageSize){currentPage--;renderList();}else{syncFocus();}} });
+
+        if (hasStaticData) {
+            log(staticChannels.length + " kanal hazir (statik)");
+            document.querySelector('.panel-manager').style.display = 'none';
+            portalUrl = typeof PORTAL_BASE !== 'undefined' ? PORTAL_BASE : '';
+            mac = typeof MAC_ADDR !== 'undefined' ? MAC_ADDR : '';
+            token = typeof TOKEN !== 'undefined' ? TOKEN : '';
+            for (var si = 0; si < staticChannels.length; si++) {
+                var sc = staticChannels[si];
+                allChannels.push({id: sc.id || si, name: sc.name || '', number: sc.number || '', group: sc.group || 'GENEL', cmd: sc.cmd || '', type: 'LIVE'});
+            }
+            renderCategories();
+            applyFiltersAndRender();
+        }
+    </script>
+</body>
+</html>
