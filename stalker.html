@@ -350,9 +350,18 @@
             }, 4000);
             
             log("📺 " + ch.name + (ch.cmd ? ' (TS live)' : ' (proxy)'));
+            /* Hata durumunda URL'i log'da goster (manuel test icin) */
+            console.log('PLAY_URL: ' + playUrl);
             player.type = 'video/MP2T';
             player.src = playUrl;
-            player.play().catch(function(){});
+            player.onerror = function() {
+                var errMsg = 'Oynatma hatasi. URL\\'i test edin: ' + playUrl;
+                logErr(errMsg);
+                console.error(errMsg);
+            };
+            player.play().catch(function(e){
+                logErr('Play basarisiz: ' + e.message + ' URL: ' + playUrl);
+            });
         }
 
         function toggleFullScreen() {
