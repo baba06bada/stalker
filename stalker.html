@@ -126,11 +126,13 @@
             var finalUrl = proxyBase ? proxyBase + encodeURIComponent(url) : url;
             log("⏳ İstek: " + finalUrl);
             var xhr = new XMLHttpRequest();
+            xhr.timeout = 20000;
             xhr.open('GET', finalUrl, true);
             xhr.onload = function() {
                 if(xhr.status >= 200 && xhr.status < 300 && xhr.responseText.length > 0) cb(xhr.responseText);
                 else { logErr("HTTP " + xhr.status + ": " + finalUrl); cb(null); }
             };
+            xhr.ontimeout = function() { logErr("Zaman aşımı (20sn): " + finalUrl); cb(null); };
             xhr.onerror = function() { logErr("Ağ hatası: " + finalUrl); cb(null); };
             try { xhr.send(); } catch(e) { logErr("XHR hatası: " + e.message); cb(null); }
         }
@@ -355,12 +357,10 @@
             player.type = 'video/MP2T';
             player.src = playUrl;
             player.onerror = function() {
-                var errMsg = 'Oynatma hatasi. URL\\'i test edin: ' + playUrl;
-                logErr(errMsg);
-                console.error(errMsg);
+                logErr("Oynatma hatasi. URL: " + playUrl);
             };
             player.play().catch(function(e){
-                logErr('Play basarisiz: ' + e.message + ' URL: ' + playUrl);
+                logErr("Play basarisiz: " + e.message + " URL: " + playUrl);
             });
         }
 
