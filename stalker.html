@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LGTV IPTV</title>
+    <title>BABABADA | STALKER PLAYER v1.2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -53,26 +53,26 @@
     <div id="app">
         <aside id="sidebar">
             <div class="logo-area">
-                <span>LGTV IPTV</span>
+                <span>BABABADA <small style="font-size:16px;color:#8a92a6;">STALKER</small></span>
                 <a href="index.html" class="btn-switch">Xtream</a>
             </div>
             <div class="panel-manager">
                 <input id="pUrl" placeholder="Portal URL (http://sunucu:port/c/)">
                 <div class="row-gap">
                     <input id="pMac" placeholder="MAC (AA:BB:CC:DD:EE:FF)" style="flex:3;">
-                    <button class="btn-load" id="connectBtn" style="padding:18px;flex:1;font-size:20px;" onclick="connect()">BAGLAN</button>
+                    <button class="btn-load" id="connectBtn" style="padding:18px;flex:1;font-size:20px;" onclick="connect()">BAĞLAN</button>
                 </div>
             </div>
             <div class="mode-selector">
-                <button class="mode-btn active-mode" id="mLive" onclick="setMode('LIVE')">CANLI</button>
-                <button class="mode-btn" id="mVod" onclick="setMode('VOD')">FILM</button>
-                <button class="mode-btn" id="mSeries" onclick="setMode('SERIES')">DIZI</button>
+                <button class="mode-btn active-mode" id="mLive" onclick="setMode('LIVE')">📺 CANLI</button>
+                <button class="mode-btn" id="mVod" onclick="setMode('VOD')">🎬 FİLM</button>
+                <button class="mode-btn" id="mSeries" onclick="setMode('SERIES')">🍿 DİZİ</button>
             </div>
             <div class="categories-container"><div id="cats"></div></div>
-            <div id="logArea">Portal URL + MAC girin, Baglan'a tiklayin.</div>
+            <div id="logArea">Portal URL (örn: http://lefanten.com:8080/c/) + MAC girin, Bağlan'a tıklayın.</div>
         </aside>
         <section id="middle-panel">
-            <div class="list-header"><span id="listTitle">KANAL LISTESI</span></div>
+            <div class="list-header"><span id="listTitle">KANAL LİSTESİ</span></div>
             <div id="listContainer"></div>
             <div id="pageIndicator"></div>
         </section>
@@ -93,11 +93,15 @@
         var pageIndicator = document.getElementById('pageIndicator');
         var infoOverlay = document.getElementById('infoOverlay');
 
+        /* Static data modu: data.js dosyasindan yuklenen kanallar */
         var hasStaticData = (typeof CHANNELS !== 'undefined' && CHANNELS && CHANNELS.length > 0);
         var staticChannels = hasStaticData ? CHANNELS : [];
+
+        /* Proxy modu: sayfa HTTP sunucudan acilmissa API cagrilari proxy uzerinden gitsin */
         var pageOrigin = window.location.origin || window.location.protocol + '//' + window.location.host;
         var isHttp = window.location.protocol.indexOf('http') === 0;
         var proxyBase = isHttp ? pageOrigin + '/proxy?url=' : '';
+
         var portalUrl = ''; portalBase = ''; mac = ''; token = '';
         var allChannels = []; currentList = []; tvFocusedIndex = 0; currentMode = 'LIVE'; currentCategory = null;
         var currentPlayingCh = null;
@@ -112,14 +116,15 @@
             var url = portalUrl + 'portal.php?' + params + '&mac=' + encodeURIComponent(mac);
             if(token) url += '&token=' + encodeURIComponent(token);
             var finalUrl = proxyBase ? proxyBase + encodeURIComponent(url) : url;
+            log("⏳ İstek: " + finalUrl);
             var xhr = new XMLHttpRequest();
             xhr.open('GET', finalUrl, true);
             xhr.onload = function() {
                 if(xhr.status >= 200 && xhr.status < 300 && xhr.responseText.length > 0) cb(xhr.responseText);
-                else { logErr("HTTP " + xhr.status); cb(null); }
+                else { logErr("HTTP " + xhr.status + ": " + finalUrl); cb(null); }
             };
-            xhr.onerror = function() { logErr("Ag hatasi"); cb(null); };
-            try { xhr.send(); } catch(e) { logErr("XHR: " + e.message); cb(null); }
+            xhr.onerror = function() { logErr("Ağ hatası: " + finalUrl); cb(null); };
+            try { xhr.send(); } catch(e) { logErr("XHR hatası: " + e.message); cb(null); }
         }
 
         function connect() {
@@ -129,26 +134,32 @@
             if(url.indexOf('http') !== 0) url = 'http://' + url;
             if(url.charAt(url.length-1) !== '/') url += '/';
             portalUrl = url;
+            /* Base domain'ı çıkar (localhost replace için) */
             var a = document.createElement('a'); a.href = portalUrl;
             portalBase = a.protocol + '//' + a.hostname + (a.port ? ':' + a.port : '') + '/';
             mac = macAddr; token = ''; allChannels = []; genreMap = {};
-            log("Token aliniyor...");
+
+            log("⏳ Token alınıyor...");
             document.getElementById('connectBtn').disabled = true;
+
             apiCall('type=stb&action=handshake', function(res) {
                 if(!res) { enableBtn(); return; }
                 try {
                     var d = JSON.parse(res);
                     token = (d && d.js && d.js.token) || d.token || '';
-                    if(token) { log("Token alindi"); loadGenres(); }
-                    else {
+                    if(token) {
+                        log("✅ Token alındı, kategoriler yükleniyor...");
+                        loadGenres();
+                    } else {
+                        /* Token'ı farklı yerde ara */
                         var tMatch = res.match(/"token"\s*:\s*"([^"]+)"/);
-                        if(tMatch) { token = tMatch[1]; log("Token alindi"); loadGenres(); }
-                        else { logErr("Token alinamadi."); enableBtn(); }
+                        if(tMatch) { token = tMatch[1]; log("✅ Token alındı"); loadGenres(); }
+                        else { logErr("Token alınamadı."); enableBtn(); }
                     }
                 } catch(e) {
                     var tMatch2 = res.match(/["']token["']\s*[:=]\s*["']([^"']+)["']/);
-                    if(tMatch2) { token = tMatch2[1]; log("Token alindi"); loadGenres(); }
-                    else { logErr("Yanit: " + e.message); enableBtn(); }
+                    if(tMatch2) { token = tMatch2[1]; log("✅ Token alındı"); loadGenres(); }
+                    else { logErr("Yanıt hatası: " + e.message); enableBtn(); }
                 }
             });
         }
@@ -171,9 +182,9 @@
         }
 
         function loadChannels() {
-            log("Kanallar yukleniyor...");
+            log("⏳ Kanallar yükleniyor...");
             apiCall('type=itv&action=get_all_channels', function(res) {
-                if(!res) { logErr("Kanal listesi alinamadi."); enableBtn(); return; }
+                if(!res) { logErr("Kanal listesi alınamadı."); enableBtn(); return; }
                 try {
                     var d = JSON.parse(res);
                     var channels = [];
@@ -181,7 +192,11 @@
                     else if(d && d.data) channels = d.data;
                     else if(Array.isArray(d)) channels = d;
                     else if(d && d.js && Array.isArray(d.js)) channels = d.js;
-                    if(!channels || channels.length === 0) { logErr("Kanal bulunamadi."); enableBtn(); return; }
+
+                    if(!channels || channels.length === 0) {
+                        logErr("Kanal bulunamadı."); enableBtn(); return;
+                    }
+
                     for(var i=0; i<channels.length; i++) {
                         var c = channels[i];
                         if(!c || !c.name) continue;
@@ -189,6 +204,7 @@
                         var groupName = genreMap[c.tv_genre_id] || c.genre || c.category || c.group || 'GENEL';
                         var streamUrl = '';
                         if(c.cmd) {
+                            /* cmd'den stream URL oluştur: "ffmpeg http://localhost/ch/123_" */
                             var cmdUrl = c.cmd.replace(/^ffmpeg\s+/, '');
                             cmdUrl = cmdUrl.replace('http://localhost/', portalBase);
                             streamUrl = cmdUrl;
@@ -196,20 +212,30 @@
                         if(!streamUrl && c.url) streamUrl = c.url;
                         if(!streamUrl && c.link) streamUrl = c.link;
                         if(!streamUrl && c.stream_url) streamUrl = c.stream_url;
-                        if(!streamUrl) streamUrl = portalUrl + 'ch/' + chId;
+                        if(!streamUrl) {
+                            /* ID'den URL oluştur */
+                            streamUrl = portalUrl + 'ch/' + chId;
+                        }
                         if(streamUrl) {
                             var sep = streamUrl.indexOf('?') > 0 ? '&' : '?';
                             streamUrl = streamUrl + sep + 'token=' + encodeURIComponent(token) + '&mac=' + encodeURIComponent(mac);
                         }
-                        if(streamUrl) {
-                            allChannels.push({id: chId, name: c.name, number: c.number || '', group: groupName, url: streamUrl, type: 'LIVE'});
-                        }
+                        allChannels.push({
+                            id: chId,
+                            name: c.name,
+                            number: c.number || '',
+                            group: groupName,
+                            cmd: c.cmd || '',
+                            type: 'LIVE'
+                        });
                     }
-                    log(allChannels.length + " kanal hazir");
+                    log("✅ " + allChannels.length + " kanal hazır");
                     enableBtn();
                     renderCategories();
                     applyFiltersAndRender();
-                } catch(e) { logErr("Veri: " + e.message); enableBtn(); }
+                } catch(e) {
+                    logErr("Veri hatası: " + e.message); enableBtn();
+                }
             });
         }
 
@@ -231,7 +257,7 @@
             }
             if(!modeChannels.length) return;
             var allDiv = document.createElement('div');
-            allDiv.textContent = 'TUMU';
+            allDiv.textContent = '📂 TÜMÜ';
             var cnt = document.createElement('span'); cnt.className = 'cat-count'; cnt.textContent = modeChannels.length;
             allDiv.appendChild(cnt); allDiv.className = 'cat-active';
             allDiv.onclick = function() { currentCategory = null; clearActive(); allDiv.classList.add('cat-active'); applyFiltersAndRender(); };
@@ -307,15 +333,23 @@
             if(!ch) return;
             currentPlayingCh = ch;
             player.pause(); player.removeAttribute('src'); player.load();
+            
             if (!ch.cmd) { logErr("Kanal bilgisi eksik"); return; }
-            log(ch.name);
-            infoOverlay.innerHTML = ch.name + '<small>CANLI</small>';
+            
+            log("📺 " + ch.name);
+            
+            /* Info overlay */
+            infoOverlay.innerHTML = ch.name + '<small>📺 CANLI</small>';
             infoOverlay.style.display = 'block';
             if(infoOverlay._hideTimer) clearTimeout(infoOverlay._hideTimer);
             infoOverlay._hideTimer = setTimeout(function() {
                 if(infoOverlay) infoOverlay.style.display = 'none';
             }, 4000);
+            
+            /* Proxy uzerinden raw MPEG-TS stream - HLS/hls.js/MSE olmadan direkt oynat */
             var tsliveUrl = pageOrigin + '/tslive?cmd=' + encodeURIComponent(ch.cmd) + '&mac=' + encodeURIComponent(mac) + '&token=' + encodeURIComponent(token) + '&portal=' + encodeURIComponent(portalUrl);
+            
+            log("📺 " + ch.name + " (TS live)");
             player.type = 'video/MP2T';
             player.src = tsliveUrl;
             player.play().catch(function(){});
@@ -324,7 +358,7 @@
         function toggleFullScreen() {
             isFullScreen = !isFullScreen;
             document.body.classList.toggle('fullscreen-mode', isFullScreen);
-            log(isFullScreen ? "Tam Ekran" : "Normal");
+            log(isFullScreen ? "📺 Tam Ekran" : "📺 Normal");
         }
 
         window.addEventListener('keydown', function(e) {
@@ -351,15 +385,23 @@
         });
         listContainer.addEventListener('wheel', function(e) { e.preventDefault(); if(!currentList.length) return; var d=e.deltaY; if(d>0&&tvFocusedIndex<currentList.length-1){tvFocusedIndex++;if(tvFocusedIndex>=(currentPage+1)*pageSize){currentPage++;renderList();}else{syncFocus();}}else if(d<0&&tvFocusedIndex>0){tvFocusedIndex--;if(tvFocusedIndex<currentPage*pageSize){currentPage--;renderList();}else{syncFocus();}} });
 
+        /* Static data ile baslangic (data.js dosyasindan yuklendiyse) */
         if (hasStaticData) {
-            log(staticChannels.length + " kanal hazir (statik)");
+            log("✅ " + staticChannels.length + " kanal hazir (statik)");
             document.querySelector('.panel-manager').style.display = 'none';
             portalUrl = typeof PORTAL_BASE !== 'undefined' ? PORTAL_BASE : '';
             mac = typeof MAC_ADDR !== 'undefined' ? MAC_ADDR : '';
             token = typeof TOKEN !== 'undefined' ? TOKEN : '';
             for (var si = 0; si < staticChannels.length; si++) {
                 var sc = staticChannels[si];
-                allChannels.push({id: sc.id || si, name: sc.name || '', number: sc.number || '', group: sc.group || 'GENEL', cmd: sc.cmd || '', type: 'LIVE'});
+                allChannels.push({
+                    id: sc.id || si,
+                    name: sc.name || '',
+                    number: sc.number || '',
+                    group: sc.group || 'GENEL',
+                    cmd: sc.cmd || '',
+                    type: 'LIVE'
+                });
             }
             renderCategories();
             applyFiltersAndRender();
