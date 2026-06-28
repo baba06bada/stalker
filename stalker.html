@@ -211,31 +211,17 @@
                         if(!c || !c.name) continue;
                         var chId = c.id || c.channel_id || i;
                         var groupName = genreMap[c.tv_genre_id] || c.genre || c.category || c.group || 'GENEL';
-                        var streamUrl = '';
-                        if(c.cmd) {
-                            /* cmd'den stream URL oluştur: "ffmpeg http://localhost/ch/123_" */
-                            var cmdUrl = c.cmd.replace(/^ffmpeg\s+/, '');
-                            cmdUrl = cmdUrl.replace('http://localhost/', portalBase);
-                            streamUrl = cmdUrl;
-                        }
-                        if(!streamUrl && c.url) streamUrl = c.url;
-                        if(!streamUrl && c.link) streamUrl = c.link;
-                        if(!streamUrl && c.stream_url) streamUrl = c.stream_url;
-                        if(!streamUrl) {
-                            /* ID'den URL oluştur */
-                            streamUrl = portalUrl + 'ch/' + chId;
-                        }
-                        if(streamUrl) {
-                            var sep = streamUrl.indexOf('?') > 0 ? '&' : '?';
-                            streamUrl = streamUrl + sep + 'token=' + encodeURIComponent(token) + '&mac=' + encodeURIComponent(mac);
+                        var cmd = c.cmd || '';
+                        if(!cmd) {
+                            /* API cmd dondurmezse ID'den cmd olustur (create_link icin gerekli) */
+                            cmd = 'ffmpeg http://localhost/ch/' + chId + '_';
                         }
                         allChannels.push({
                             id: chId,
                             name: c.name,
                             number: c.number || '',
                             group: groupName,
-                            cmd: c.cmd || '',
-                            url: streamUrl || '',
+                            cmd: cmd,
                             type: 'LIVE'
                         });
                     }
