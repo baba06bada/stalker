@@ -102,6 +102,14 @@
         var isHttp = window.location.protocol.indexOf('http') === 0;
         var proxyBase = isHttp ? pageOrigin + '/proxy?url=' : '';
 
+        /* localStorage'dan kayıtlı panel bilgilerini yükle */
+        try {
+            var savedUrl = localStorage.getItem('portalUrl');
+            var savedMac = localStorage.getItem('portalMac');
+            if(savedUrl) document.getElementById('pUrl').value = savedUrl;
+            if(savedMac) document.getElementById('pMac').value = savedMac;
+        } catch(e) {}
+
         var portalUrl = ''; portalBase = ''; mac = ''; token = '';
         var allChannels = []; currentList = []; tvFocusedIndex = 0; currentMode = 'LIVE'; currentCategory = null;
         var currentPlayingCh = null;
@@ -148,17 +156,18 @@
                     var d = JSON.parse(res);
                     token = (d && d.js && d.js.token) || d.token || '';
                     if(token) {
+                        try { localStorage.setItem('portalUrl', portalUrl); localStorage.setItem('portalMac', mac); } catch(e) {}
                         log("✅ Token alındı, kategoriler yükleniyor...");
                         loadGenres();
                     } else {
                         /* Token'ı farklı yerde ara */
                         var tMatch = res.match(/"token"\s*:\s*"([^"]+)"/);
-                        if(tMatch) { token = tMatch[1]; log("✅ Token alındı"); loadGenres(); }
+                        if(tMatch) { token = tMatch[1]; try { localStorage.setItem('portalUrl', portalUrl); localStorage.setItem('portalMac', mac); } catch(e) {} log("✅ Token alındı"); loadGenres(); }
                         else { logErr("Token alınamadı."); enableBtn(); }
                     }
                 } catch(e) {
                     var tMatch2 = res.match(/["']token["']\s*[:=]\s*["']([^"']+)["']/);
-                    if(tMatch2) { token = tMatch2[1]; log("✅ Token alındı"); loadGenres(); }
+                    if(tMatch2) { token = tMatch2[1]; try { localStorage.setItem('portalUrl', portalUrl); localStorage.setItem('portalMac', mac); } catch(e) {} log("✅ Token alındı"); loadGenres(); }
                     else { logErr("Yanıt hatası: " + e.message); enableBtn(); }
                 }
             });
@@ -226,6 +235,7 @@
                             number: c.number || '',
                             group: groupName,
                             cmd: c.cmd || '',
+                            url: streamUrl || '',
                             type: 'LIVE'
                         });
                     }
@@ -334,7 +344,14 @@
             currentPlayingCh = ch;
             player.pause(); player.removeAttribute('src'); player.load();
             
-            if (!ch.cmd) { logErr("Kanal bilgisi eksik"); return; }
+            var playUrl = '';
+            if (ch.cmd) {
+                playUrl = pageOrigin + '/tslive?cmd=' + encodeURIComponent(ch.cmd) + '&mac=' + encodeURIComponent(mac) + '&token=' + encodeURIComponent(token) + '&portal=' + encodeURIComponent(portalUrl);
+            } else if (ch.url) {
+                playUrl = pageOrigin + '/tsproxy?url=' + encodeURIComponent(ch.url);
+            } else {
+                logErr("Kanal bilgisi eksik"); return;
+            }
             
             log("📺 " + ch.name);
             
@@ -346,12 +363,9 @@
                 if(infoOverlay) infoOverlay.style.display = 'none';
             }, 4000);
             
-            /* Proxy uzerinden raw MPEG-TS stream - HLS/hls.js/MSE olmadan direkt oynat */
-            var tsliveUrl = pageOrigin + '/tslive?cmd=' + encodeURIComponent(ch.cmd) + '&mac=' + encodeURIComponent(mac) + '&token=' + encodeURIComponent(token) + '&portal=' + encodeURIComponent(portalUrl);
-            
-            log("📺 " + ch.name + " (TS live)");
+            log("📺 " + ch.name + (ch.cmd ? ' (TS live)' : ' (proxy)'));
             player.type = 'video/MP2T';
-            player.src = tsliveUrl;
+            player.src = playUrl;
             player.play().catch(function(){});
         }
 
