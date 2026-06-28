@@ -369,7 +369,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     data = resp.read()
                 d = json.loads(data.decode('utf-8'))
-                stream_cmd = d.get('js', {}).get('cmd', '')
+                stream_cmd = d.get('js', {}).get('cmd', '') or d.get('cmd', '')
                 if not stream_cmd:
                     raise Exception('create_link hata verdi: ' + data[:200])
 
@@ -533,7 +533,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     data = resp.read()
                 d = json.loads(data.decode('utf-8'))
-                stream_cmd = d.get('js', {}).get('cmd', '')
+                stream_cmd = d.get('js', {}).get('cmd', '') or d.get('cmd', '')
                 if not stream_cmd:
                     raise Exception('create_link hata verdi: ' + data[:200])
                 ts_url = stream_cmd.replace('ffmpeg ', '', 1)
